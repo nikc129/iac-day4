@@ -23,10 +23,23 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
+          terraform_wrapper: false
 
       - name: Terraform Init
         run: terraform init
 
+      # 🔥 NEW STEP: Install conftest
+      - name: Install conftest
+        run: |
+          curl -L https://github.com/open-policy-agent/conftest/releases/download/v0.43.0/conftest_0.43.0_Linux_x86_64.tar.gz | tar xz
+          sudo mv conftest /usr/local/bin/
+
+      # 🔥 NEW STEP: Run Policy Check
+      - name: Policy Check (OPA)
+        run: |
+          terraform plan -out=tfplan
+          terraform show -json tfplan > tfplan.json
+          conftest test tfplan.json --policy policy/
       - name: Terraform Validate
         run: terraform validate
 

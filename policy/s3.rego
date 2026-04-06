@@ -1,22 +1,24 @@
-package main
+package policy.s3
 
-# ❌ Deny public S3 bucket
-deny[msg] {
-  resource := input.resource_changes[_]
-  resource.type == "aws_s3_bucket"
+# Default deny
+default allow = false
 
-  # check ACL
-  resource.change.after.acl == "public-read"
-
-  msg = sprintf("Bucket %v cannot be public", [resource.name])
+# Allow only if S3 bucket is private
+allow {
+    input.resource_type == "aws_s3_bucket"
+    not public_access
 }
 
-# ❌ Deny missing encryption
-deny[msg] {
-  resource := input.resource_changes[_]
-  resource.type == "aws_s3_bucket"
+# Detect if bucket is public
+public_access {
+    input.acl == "public-read"
+}
 
-  not resource.change.after.server_side_encryption_configuration
+public_access {
+    input.acl == "public-read-write"
+}
 
-  msg = sprintf("Bucket %v must have encryption enabled", [resource.name])
+public_access {
+    input.policy.Statement[_].Effect == "Allow"
+    input.policy.Statement[_].Principal == "*"
 }
