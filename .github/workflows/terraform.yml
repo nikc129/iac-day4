@@ -39,7 +39,6 @@ jobs:
           terraform plan -out=tfplan
           terraform show -json tfplan > tfplan.json
           conftest test tfplan.json --policy policy/
-
       - name: Terraform Validate
         run: terraform validate
 
