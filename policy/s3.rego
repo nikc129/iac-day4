@@ -1,51 +1,24 @@
-package main
+package policy.s3
 
-# ❌ Deny public bucket
-deny[msg] {
-  resource := input.resource_changes[_]
-  resource.type == "aws_s3_bucket"
-  resource.change.after.acl == "public-read"
+# Default deny
+default allow = false
 
-  msg = sprintf("Bucket %v cannot be public", [resource.name])
+# Allow only if S3 bucket is private
+allow {
+    input.resource_type == "aws_s3_bucket"
+    not public_access
 }
 
-# ❌ Deny if encryption resource is missing
-deny[msg] {
-  bucket := input.resource_changes[_]
-  bucket.type == "aws_s3_bucket"
-
-  not encryption_exists(bucket.name)
-
-  msg = sprintf("Bucket %v must have encryption enabled", [bucket.name])
+# Detect if bucket is public
+public_access {
+    input.acl == "public-read"
 }
 
-# ✅ Helper: check encryption resource exists
-encryption_exists(bucket_name) {
-  enc := input.resource_changes[_]
-  enc.type == "aws_s3_bucket_server_side_encryption_configuration"
-}package main
-
-# ❌ Deny public bucket
-deny[msg] {
-  resource := input.resource_changes[_]
-  resource.type == "aws_s3_bucket"
-  resource.change.after.acl == "public-read"
-
-  msg = sprintf("Bucket %v cannot be public", [resource.name])
+public_access {
+    input.acl == "public-read-write"
 }
 
-# ❌ Deny if encryption resource is missing
-deny[msg] {
-  bucket := input.resource_changes[_]
-  bucket.type == "aws_s3_bucket"
-
-  not encryption_exists(bucket.name)
-
-  msg = sprintf("Bucket %v must have encryption enabled", [bucket.name])
-}
-
-# ✅ Helper: check encryption resource exists
-encryption_exists(bucket_name) {
-  enc := input.resource_changes[_]
-  enc.type == "aws_s3_bucket_server_side_encryption_configuration"
+public_access {
+    input.policy.Statement[_].Effect == "Allow"
+    input.policy.Statement[_].Principal == "*"
 }
